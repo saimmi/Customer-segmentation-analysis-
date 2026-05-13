@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Segmentation — RFM & KMeans Clustering | Case Study</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #fafaf8;
+  --bg2:     #f4f3ef;
+  --bg3:     #eeede8;
+  --white:   #ffffff;
+  --border:  #e2e0d8;
+  --border2: #d0cec5;
+  --text:    #1a1917;
+  --muted:   #6b6860;
+  --hint:    #9c9a93;
+  --blue:    #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-br: #bfdbfe;
+  --green:   #16a34a;
+  --green-bg:#f0fdf4;
+  --green-br:#bbf7d0;
+  --amber:   #b45309;
+  --amber-bg:#fffbeb;
+  --amber-br:#fde68a;
+  --red:     #dc2626;
+  --red-bg:  #fef2f2;
+  --red-br:  #fecaca;
+  --purple:  #7c3aed;
+  --purple-bg:#f5f3ff;
+  --purple-br:#ddd6fe;
+  --accent:  #2563eb;
+  --radius:  8px;
+  --radius-lg: 12px;
+}
+
+html { scroll-behavior: smooth; font-size: 16px; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-inner {
+  max-width: 860px; margin: 0 auto; padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.topbar-brand {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.topbar-brand span { color: var(--muted); font-weight: 400; }
+.topnav { display: flex; gap: 6px; }
+.topnav a {
+  font-size: 12px; color: var(--muted); text-decoration: none;
+  padding: 4px 10px; border-radius: 99px;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.topnav a:hover { color: var(--text); border-color: var(--border2); background: var(--bg2); }
+
+/* ── HERO ── */
+.hero {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 4rem 2rem 3rem;
+}
+.hero-inner { max-width: 860px; margin: 0 auto; }
+.hero-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: var(--blue);
+  background: var(--blue-bg); border: 1px solid var(--blue-br);
+  padding: 4px 12px; border-radius: 99px; margin-bottom: 1.25rem;
+  font-family: 'Fira Code', monospace; letter-spacing: 0.02em;
+}
+.hero h1 {
+  font-family: 'Lora', serif;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  line-height: 1.2; font-weight: 600;
+  color: var(--text); margin-bottom: 1rem;
+}
+.hero h1 em { font-style: italic; color: var(--blue); }
+.hero-lead {
+  font-size: 16px; color: var(--muted);
+  max-width: 580px; line-height: 1.8; margin-bottom: 1.75rem;
+}
+.hero-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 1.5rem; }
+.hero-meta-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted);
+}
+.meta-pip { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px; color: var(--muted);
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 3px 9px; border-radius: 4px;
+}
+
+/* ── LAYOUT ── */
+.page { max-width: 860px; margin: 0 auto; padding: 0 2rem 6rem; }
+
+/* ── TOC ── */
+.toc {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.5rem 1.75rem;
+  margin: 2.5rem 0;
+}
+.toc-title { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.75rem; font-family: 'Fira Code', monospace; }
+.toc ol { padding-left: 1.25rem; }
+.toc li { margin-bottom: 5px; }
+.toc a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+.toc a:hover { color: var(--blue); }
+
+/* ── SECTION ── */
+.section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+.section:last-child { border-bottom: none; }
+.sec-label {
+  font-family: 'Fira Code', monospace;
+  font-size: 11px; color: var(--hint); letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 0.6rem;
+}
+h2 {
+  font-family: 'Lora', serif; font-size: 1.6rem; font-weight: 600;
+  color: var(--text); margin-bottom: 0.85rem; line-height: 1.3;
+}
+h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.75rem 0 0.4rem; }
+p { color: var(--muted); margin-bottom: 0.9rem; line-height: 1.8; font-size: 15px; }
+p strong { color: var(--text); font-weight: 500; }
+p:last-child { margin-bottom: 0; }
+
+/* ── CALLOUT ── */
+.callout {
+  border-left: 3px solid var(--blue);
+  background: var(--blue-bg); border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 1rem 1.25rem; margin: 1.25rem 0;
+}
+.callout p { color: var(--text); font-size: 14px; margin: 0; }
+.callout.warn { border-left-color: var(--amber); background: var(--amber-bg); }
+.callout.success { border-left-color: var(--green); background: var(--green-bg); }
+.callout.danger { border-left-color: var(--red); background: var(--red-bg); }
+
+/* ── STAT CARDS ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 1.5rem 0; }
+.stat {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem;
+}
+.stat-label { font-size: 11px; color: var(--hint); margin-bottom: 4px; font-family: 'Fira Code', monospace; }
+.stat-value { font-size: 1.55rem; font-weight: 600; color: var(--text); line-height: 1.1; }
+.stat-sub { font-size: 11px; color: var(--hint); margin-top: 3px; }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  background: #1e1e2e;
+  border-radius: var(--radius-lg); margin: 1.25rem 0; overflow: hidden;
+  border: 1px solid #313244;
+}
+.code-header {
+  background: #313244; padding: 8px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.code-lang { font-family: 'Fira Code', monospace; font-size: 11px; color: #a6adc8; }
+.code-dots { display: flex; gap: 5px; }
+.code-dot { width: 10px; height: 10px; border-radius: 50%; }
+pre {
+  padding: 1.25rem 1.5rem; overflow-x: auto;
+  font-family: 'Fira Code', monospace; font-size: 13px;
+  line-height: 1.75; color: #cdd6f4; white-space: pre;
+}
+/* Catppuccin Mocha inspired syntax */
+.kw  { color: #cba6f7; }   /* keyword — purple */
+.fn  { color: #89b4fa; }   /* function — blue */
+.st  { color: #a6e3a1; }   /* string — green */
+.cm  { color: #6c7086; font-style: italic; }  /* comment */
+.nu  { color: #fab387; }   /* number — peach */
+.op  { color: #89dceb; }   /* operator — sky */
+.cl  { color: #f38ba8; }   /* class — red */
+.dc  { color: #f9e2af; }   /* decorator — yellow */
+
+/* ── CHART ── */
+.chart-box {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+.chart-title { font-size: 12px; font-weight: 500; color: var(--hint); margin-bottom: 1rem; font-family: 'Fira Code', monospace; }
+.chart-wrap { position: relative; width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.legend-sq { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); margin: 1.25rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: var(--bg2); color: var(--muted);
+  font-family: 'Fira Code', monospace; font-size: 11px;
+  padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
+  white-space: nowrap; font-weight: 500;
+}
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+.mono { font-family: 'Fira Code', monospace; font-size: 12px; }
+.badge {
+  display: inline-block; font-size: 11px; padding: 2px 8px;
+  border-radius: 4px; font-weight: 500; font-family: 'Fira Code', monospace;
+}
+
+/* ── STEP CARDS ── */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 12px; margin: 1.25rem 0; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 12px; margin: 1.25rem 0; }
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+}
+.card-num { font-family: 'Fira Code', monospace; font-size: 11px; color: var(--hint); margin-bottom: 6px; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.card-body { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+/* ── RFM ── */
+.rfm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1.25rem 0; }
+@media (max-width: 580px) { .rfm-grid { grid-template-columns: 1fr; } }
+.rfm-r { background: var(--blue-bg); border: 1px solid var(--blue-br); border-radius: var(--radius-lg); padding: 1.25rem; }
+.rfm-f { background: var(--green-bg); border: 1px solid var(--green-br); border-radius: var(--radius-lg); padding: 1.25rem; }
+.rfm-m { background: var(--red-bg); border: 1px solid var(--red-br); border-radius: var(--radius-lg); padding: 1.25rem; }
+.rfm-letter { font-family: 'Lora', serif; font-size: 2.2rem; font-style: italic; line-height: 1; margin-bottom: 6px; }
+.rfm-r .rfm-letter { color: var(--blue); }
+.rfm-f .rfm-letter { color: var(--green); }
+.rfm-m .rfm-letter { color: var(--red); }
+.rfm-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.rfm-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── SEGMENT CARDS ── */
+.seg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 12px; margin: 1.5rem 0; }
+.seg {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+  border-top: 3px solid;
+}
+.seg-header { margin-bottom: 8px; }
+.seg-cluster { font-family: 'Fira Code', monospace; font-size: 10px; color: var(--hint); margin-bottom: 3px; }
+.seg-name { font-size: 15px; font-weight: 700; }
+.seg-desc { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+.seg-action { font-size: 12px; font-weight: 500; padding-top: 8px; border-top: 1px solid var(--border); }
+.seg-action-label { color: var(--hint); font-size: 10px; font-family: 'Fira Code', monospace; margin-bottom: 2px; }
+
+/* ── INSIGHT ── */
+.insight-list { display: flex; flex-direction: column; gap: 10px; margin: 1.25rem 0; }
+.insight {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.1rem 1.25rem;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.insight-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+.insight-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.insight-body { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+/* ── FORMULA ── */
+.formula {
+  background: var(--bg2); border: 1px dashed var(--border2);
+  border-radius: var(--radius); padding: 1.1rem 1.5rem;
+  font-family: 'Fira Code', monospace; font-size: 14px;
+  text-align: center; color: var(--text); margin: 1.25rem 0;
+}
+.formula small { display: block; font-size: 12px; color: var(--muted); margin-top: 5px; font-family: 'Inter', sans-serif; }
+
+/* ── FLOW ── */
+.flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 1rem 0; }
+.flow-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px 14px;
+  font-size: 13px; font-family: 'Fira Code', monospace; color: var(--text);
+}
+.flow-arr { color: var(--hint); font-size: 14px; }
+
+/* ── TWO COL ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── FOOTER ── */
+footer {
+  max-width: 860px; margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: gap; gap: 1rem;
+}
+.footer-note { font-size: 12px; color: var(--hint); }
+.footer-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+@media (max-width: 680px) {
+  .topnav { display: none; }
+  .hero { padding: 2.5rem 1.25rem 2rem; }
+  .page { padding: 0 1.25rem 4rem; }
+  footer { padding: 2rem 1.25rem; }
+  .rfm-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-brand">Customer Segmentation <span>— Data Science Case Study</span></div>
+    <nav class="topnav">
+      <a href="#problem">Problem</a>
+      <a href="#data">Data</a>
+      <a href="#cleaning">Cleaning</a>
+      <a href="#rfm">RFM</a>
+      <a href="#outliers">Outliers</a>
+      <a href="#clustering">Clustering</a>
+      <a href="#segments">Segments</a>
+      <a href="#insights">Insights</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Case Study &nbsp;·&nbsp; Unsupervised Machine Learning</div>
+    <h1>Customer Segmentation<br>with <em>RFM Analysis</em> &amp;<br>KMeans Clustering</h1>
+    <p class="hero-lead">A complete data science project — from a messy, raw transaction log to seven clearly defined customer groups, each with a targeted business strategy. Built using Python, pandas, and scikit-learn.</p>
+    <div class="hero-meta">
+      <div class="hero-meta-item"><div class="meta-pip"></div>Dataset: Online Retail II (UCI)</div>
+      <div class="hero-meta-item"><div class="meta-pip"></div>525,461 transactions · 1 year</div>
+      <div class="hero-meta-item"><div class="meta-pip"></div>4,285 customers segmented</div>
+      <div class="hero-meta-item"><div class="meta-pip"></div>7 segments identified</div>
+    </div>
+    <div class="tag-row">
+      <span class="tag">Python</span><span class="tag">pandas</span><span class="tag">scikit-learn</span>
+      <span class="tag">KMeans</span><span class="tag">StandardScaler</span><span class="tag">RFM</span>
+      <span class="tag">matplotlib</span><span class="tag">seaborn</span><span class="tag">Jupyter</span>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE BODY -->
+<div class="page">
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#problem">The Business Problem</a></li>
+      <li><a href="#data">Dataset Overview &amp; Exploration</a></li>
+      <li><a href="#cleaning">Data Cleaning — What Was Removed and Why</a></li>
+      <li><a href="#rfm">Feature Engineering — The RFM Framework</a></li>
+      <li><a href="#outliers">Outlier Detection &amp; Separation</a></li>
+      <li><a href="#clustering">KMeans Clustering — Finding the Groups</a></li>
+      <li><a href="#segments">The 7 Customer Segments</a></li>
+      <li><a href="#insights">Key Insights &amp; Business Recommendations</a></li>
+    </ol>
+  </div>
+
+  <!-- ── 1. PROBLEM ── -->
+  <section class="section" id="problem">
+    <div class="sec-label">01 — Business Problem</div>
+    <h2>Why does a business need to segment its customers?</h2>
+    <p>Imagine you run an online store with thousands of customers. Some people buy every month and spend a lot. Some bought once a year ago and never came back. Some spend huge amounts in a single order but rarely return.</p>
+    <p>If you send the same marketing email to all of them — the same discount code, the same message — you are wasting money and missing the point. A loyal customer deserves a "thank you." A customer who hasn't bought in six months needs a "we miss you" offer. A big spender deserves a VIP experience.</p>
+    <div class="callout">
+      <p><strong>This project answers one clear question:</strong> "Who are our customers, how are they different from each other, and what should we do specifically for each group — based on their actual behaviour, not guesswork?"</p>
+    </div>
+    <div class="two-col">
+      <div class="card" style="border-left: 3px solid var(--red);">
+        <div class="card-num">Before this project</div>
+        <div class="card-title">One message, everyone gets it</div>
+        <div class="card-body">The marketing team sends identical campaigns to all 4,285 customers. No way to know who is loyal, who is drifting, and who is already gone.</div>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <div class="card-num">After this project</div>
+        <div class="card-title">7 groups, 7 strategies</div>
+        <div class="card-body">Every customer gets a segment label. The team knows exactly what action to take — from rewarding the best buyers to winning back the lost ones.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. DATA ── -->
+  <section class="section" id="data">
+    <div class="sec-label">02 — Dataset Overview</div>
+    <h2>What does the raw data look like?</h2>
+    <p>The dataset is the <strong>Online Retail II</strong> dataset from the UCI Machine Learning Repository. It is a real transaction log from a UK-based e-commerce company that sells gifts and home goods. Each row is one product line in one customer order.</p>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-label">total_rows</div><div class="stat-value">525K</div><div class="stat-sub">Raw transactions loaded</div></div>
+      <div class="stat"><div class="stat-label">columns</div><div class="stat-value">8</div><div class="stat-sub">Invoice, Product, Qty, Price…</div></div>
+      <div class="stat"><div class="stat-label">countries</div><div class="stat-value">40</div><div class="stat-sub">92% from United Kingdom</div></div>
+      <div class="stat"><div class="stat-label">missing_ids</div><div class="stat-value">107K</div><div class="stat-sub">Rows with no Customer ID</div></div>
+      <div class="stat"><div class="stat-label">date_range</div><div class="stat-value">1 yr</div><div class="stat-sub">Dec 2009 – Dec 2010</div></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Column</th><th>Data Type</th><th>What it means</th><th>Issues found</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">Invoice</td><td class="mono">object</td><td>Unique ID for each order</td><td>Some start with "C" (cancellations) or "A" (admin entries)</td></tr>
+          <tr><td class="mono">StockCode</td><td class="mono">object</td><td>Product identifier</td><td>Non-product codes: DOT, M, POST, BANK CHARGES, TEST…</td></tr>
+          <tr><td class="mono">Description</td><td class="mono">object</td><td>Product name</td><td>2,928 rows have no description</td></tr>
+          <tr><td class="mono">Quantity</td><td class="mono">int64</td><td>Number of units ordered</td><td>Negative values = returns or cancellations</td></tr>
+          <tr><td class="mono">InvoiceDate</td><td class="mono">datetime</td><td>When the order was placed</td><td>No issues</td></tr>
+          <tr><td class="mono">Price</td><td class="mono">float64</td><td>Unit price in GBP (£)</td><td>Some £0.00 prices; one extreme negative value (−£53,594)</td></tr>
+          <tr><td class="mono">Customer ID</td><td class="mono">float64</td><td>Unique customer number</td><td>107,927 rows are missing — anonymous transactions</td></tr>
+          <tr><td class="mono">Country</td><td class="mono">object</td><td>Customer's country</td><td>No issues</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · data_exploration.py</div>
+      </div>
+<pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">from</span> sklearn.cluster <span class="kw">import</span> <span class="cl">KMeans</span>
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> silhouette_score
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> <span class="cl">StandardScaler</span>
+
+<span class="cm"># Load the dataset</span>
+df = pd.<span class="fn">read_excel</span>(<span class="st">"./data/online_retail_II.xlsx"</span>, sheet_name=<span class="nu">0</span>)
+
+<span class="cm"># First look — shape and data types</span>
+df.<span class="fn">info</span>()
+<span class="cm"># &gt; 525,461 entries · 8 columns
+# &gt; Customer ID: only 417,534 non-null (missing ~20%)</span>
+
+df.<span class="fn">describe</span>()
+<span class="cm"># &gt; Quantity ranges from -9,600 to 19,152 (negatives = returns)
+# &gt; Price ranges from -53,594 to 25,111 (anomalies present)</span></pre>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// transaction volume by country (top 10)</div>
+      <div class="chart-wrap" style="height: 280px;">
+        <canvas id="countryChart" role="img" aria-label="Bar chart showing UK dominates with 485852 transactions vs all others combined">UK dominates. Germany next at 9495.</canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. CLEANING ── -->
+  <section class="section" id="cleaning">
+    <div class="sec-label">03 — Data Cleaning</div>
+    <h2>Removing the noise — about 23% of rows had to go</h2>
+    <p>Real data is always messy. Before running any analysis, the dataset needed careful cleaning. Nearly 1 in 4 rows was removed — not randomly, but for specific, documented reasons. This is one of the most important parts of any data project.</p>
+
+    <div class="callout warn">
+      <p><strong>Why does cleaning matter so much?</strong> If you build a customer segmentation model on cancelled orders, admin adjustments, and anonymous transactions, every insight you get will be wrong. Bad data in → bad segments out.</p>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// rows remaining after each cleaning step</div>
+      <div class="chart-wrap" style="height: 260px;">
+        <canvas id="cleaningChart" role="img" aria-label="Bar chart showing data volume decreasing from 525461 to 406309 across 5 cleaning steps">525461 raw → 406309 final.</canvas>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-num">Step 01</div>
+        <div class="card-title">Remove cancelled invoices</div>
+        <div class="card-body">Invoice IDs starting with <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">C</span> are customer returns. They have negative quantities and no real revenue. Dropped 10,209 rows.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">Step 02</div>
+        <div class="card-title">Remove admin adjustments</div>
+        <div class="card-body">Three rows start with <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">A</span> — these are internal bad-debt write-offs with extreme prices like −£53,594. Not real customer transactions.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">Step 03</div>
+        <div class="card-title">Remove non-product stock codes</div>
+        <div class="card-body">Codes like <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">DOT</span>, <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">M</span>, <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">BANK CHARGES</span>, <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">TEST001</span>, <span class="mono" style="background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:11px;">AMAZONFEE</span> are operational entries, not products sold to customers. Removed 2,456 rows.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">Step 04</div>
+        <div class="card-title">Remove missing Customer IDs</div>
+        <div class="card-body">107,927 rows have no Customer ID — they are anonymous. Since the whole goal is to segment <em>known</em> customers, these are useless and must be removed.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">Step 05</div>
+        <div class="card-title">Remove zero-price rows</div>
+        <div class="card-body">28 rows had a price of exactly £0.00 — likely free samples or data entry errors. Keeping them would make some customers look like they spent nothing.</div>
+      </div>
+      <div class="card" style="border: 1px solid var(--green-br); background: var(--green-bg);">
+        <div class="card-num" style="color: var(--green);">Result</div>
+        <div class="card-title" style="color: var(--green);">406,309 clean rows</div>
+        <div class="card-body">77.3% of the original data was kept. What remains is a set of real, paid, identified customer purchases — ready for analysis.</div>
+      </div>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · data_cleaning.py</div>
+      </div>
+<pre>cleaned_df = df.<span class="fn">copy</span>()
+
+<span class="cm"># Step 1: Keep only standard 6-digit numeric invoice IDs
+# This removes C-prefix (cancellations) and A-prefix (adjustments)</span>
+cleaned_df[<span class="st">"Invoice"</span>] = cleaned_df[<span class="st">"Invoice"</span>].<span class="fn">astype</span>(<span class="st">"str"</span>)
+mask = cleaned_df[<span class="st">"Invoice"</span>].str.<span class="fn">match</span>(<span class="st">r"^\d{6}$"</span>)
+cleaned_df = cleaned_df[mask]   <span class="cm"># 515,252 rows remain</span>
+
+<span class="cm"># Step 2: Keep only real product stock codes</span>
+stock_mask = (
+    cleaned_df[<span class="st">"StockCode"</span>].str.<span class="fn">match</span>(<span class="st">r"^\d{5}$"</span>)          <span class="cm"># e.g. 22824</span>
+    | cleaned_df[<span class="st">"StockCode"</span>].str.<span class="fn">match</span>(<span class="st">r"^\d{5}[a-zA-Z]+$"</span>) <span class="cm"># e.g. 85123A</span>
+    | cleaned_df[<span class="st">"StockCode"</span>].str.<span class="fn">match</span>(<span class="st">r"^PADS$"</span>)            <span class="cm"># legitimate product</span>
+)
+cleaned_df = cleaned_df[stock_mask]   <span class="cm"># 512,796 rows remain</span>
+
+<span class="cm"># Step 3: Drop rows where Customer ID is missing</span>
+cleaned_df.<span class="fn">dropna</span>(subset=[<span class="st">"Customer ID"</span>], inplace=<span class="kw">True</span>)  <span class="cm"># 406,437 remain</span>
+
+<span class="cm"># Step 4: Remove zero-price rows (free samples / data errors)</span>
+cleaned_df = cleaned_df[cleaned_df[<span class="st">"Price"</span>] &gt; <span class="nu">0.0</span>]   <span class="cm"># 406,309 remain</span>
+
+<span class="fn">print</span>(f<span class="st">"Retained: {len(cleaned_df)/len(df):.1%} of raw data"</span>)
+<span class="cm"># &gt; Retained: 77.3% of raw data</span></pre>
+    </div>
+  </section>
+
+  <!-- ── 4. RFM ── -->
+  <section class="section" id="rfm">
+    <div class="sec-label">04 — Feature Engineering</div>
+    <h2>The RFM model — three numbers that describe every customer</h2>
+    <p>After cleaning, each customer still has many rows of transaction history. Machine learning works on one profile per customer — not hundreds of rows. The <strong>RFM model</strong> is a classic marketing science technique that collapses all of a customer's history into exactly three numbers.</p>
+
+    <div class="rfm-grid">
+      <div class="rfm-r">
+        <div class="rfm-letter">R</div>
+        <div class="rfm-name">Recency</div>
+        <div class="rfm-desc">How many days have passed since their last purchase? A <strong>low number</strong> means they bought recently and are engaged. A <strong>high number</strong> means they may have drifted away.</div>
+      </div>
+      <div class="rfm-f">
+        <div class="rfm-letter">F</div>
+        <div class="rfm-name">Frequency</div>
+        <div class="rfm-desc">How many separate orders have they placed? A customer who returns many times is <strong>loyal and habitual</strong>. A one-time buyer is <strong>casual or at risk of leaving</strong>.</div>
+      </div>
+      <div class="rfm-m">
+        <div class="rfm-letter">M</div>
+        <div class="rfm-name">Monetary Value</div>
+        <div class="rfm-desc">How much have they spent in total (£)? <strong>High spenders</strong> deserve premium treatment. <strong>Low spenders</strong> may need upselling to increase their basket size.</div>
+      </div>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · feature_engineering.py</div>
+      </div>
+<pre><span class="cm"># Calculate revenue per line item</span>
+cleaned_df[<span class="st">"SalesLineTotal"</span>] = cleaned_df[<span class="st">"Quantity"</span>] * cleaned_df[<span class="st">"Price"</span>]
+
+<span class="cm"># Collapse from transaction-level to customer-level (one row per customer)</span>
+aggregated_df = cleaned_df.<span class="fn">groupby</span>(by=<span class="st">"Customer ID"</span>, as_index=<span class="kw">False</span>).<span class="fn">agg</span>(
+    MonetaryValue = (<span class="st">"SalesLineTotal"</span>, <span class="st">"sum"</span>),     <span class="cm"># total £ spent</span>
+    Frequency     = (<span class="st">"Invoice"</span>,       <span class="st">"nunique"</span>),  <span class="cm"># number of unique orders</span>
+    LastInvoiceDate = (<span class="st">"InvoiceDate"</span>, <span class="st">"max"</span>)      <span class="cm"># date of most recent order</span>
+)
+
+<span class="cm"># Calculate recency: days between last purchase and dataset end date (2010-12-09)</span>
+max_date = aggregated_df[<span class="st">"LastInvoiceDate"</span>].<span class="fn">max</span>()
+aggregated_df[<span class="st">"Recency"</span>] = (max_date - aggregated_df[<span class="st">"LastInvoiceDate"</span>]).dt.days
+
+<span class="cm"># Result: 4,285 customers, each with 3 clean features</span>
+aggregated_df.<span class="fn">head</span>(<span class="nu">3</span>)
+<span class="cm"># Customer ID  MonetaryValue  Frequency  Recency
+#  12346.00         169.36          2      164
+#  12347.00        1323.32          2        2
+#  12348.00         221.16          1       73</span></pre>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// distribution of monetary value — most customers spend under £1,000</div>
+      <div class="chart-wrap" style="height: 230px;">
+        <canvas id="monetaryHist" role="img" aria-label="Histogram of monetary values showing a strong right skew, most customers under 1000 GBP">Most customers between 0 and 600 GBP. Long tail of high spenders.</canvas>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-box" style="margin:0;">
+        <div class="chart-title">// frequency — most customers place 1–3 orders</div>
+        <div class="chart-wrap" style="height: 200px;">
+          <canvas id="freqHist" role="img" aria-label="Histogram showing most customers have placed 1 to 3 orders">Strong skew: most at 1-3 orders.</canvas>
+        </div>
+      </div>
+      <div class="chart-box" style="margin:0;">
+        <div class="chart-title">// recency — healthy mix of recent and lapsed buyers</div>
+        <div class="chart-wrap" style="height: 200px;">
+          <canvas id="recencyHist" role="img" aria-label="Histogram of recency values showing customers spread from 0 to 373 days">Good spread across 0–373 days.</canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. OUTLIERS ── -->
+  <section class="section" id="outliers">
+    <div class="sec-label">05 — Outlier Detection</div>
+    <h2>Separating the extreme customers before clustering</h2>
+    <p>Before running KMeans, a key decision was made: <strong>remove extreme outliers first.</strong> Here is why this matters — KMeans tries to find balanced, round cluster centres. If you include a customer who spent £349,000 alongside customers who spent £300, the algorithm will distort every cluster to account for that one extreme case. Everyone else gets misclassified.</p>
+    <p>The <strong>IQR method</strong> was used — the same mathematical method that powers box plots. Any customer more than 1.5× the interquartile range above the third quartile in Monetary Value or Frequency was flagged as an outlier.</p>
+
+    <div class="formula">
+      Outlier threshold = Q3 + (1.5 × IQR) &nbsp;where&nbsp; IQR = Q3 − Q1
+      <small>Applied separately to Monetary Value and Frequency. Outliers are not deleted — they get their own special segments.</small>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · outlier_detection.py</div>
+      </div>
+<pre><span class="cm"># --- Monetary outliers ---</span>
+M_Q1 = aggregated_df[<span class="st">"MonetaryValue"</span>].<span class="fn">quantile</span>(<span class="nu">0.25</span>)
+M_Q3 = aggregated_df[<span class="st">"MonetaryValue"</span>].<span class="fn">quantile</span>(<span class="nu">0.75</span>)
+M_IQR = M_Q3 - M_Q1
+
+monetary_outliers = aggregated_df[
+    aggregated_df[<span class="st">"MonetaryValue"</span>] &gt; (M_Q3 + <span class="nu">1.5</span> * M_IQR)
+]  <span class="cm"># 423 customers — avg spend: £12,188</span>
+
+<span class="cm"># --- Frequency outliers ---</span>
+F_Q1 = aggregated_df[<span class="st">"Frequency"</span>].<span class="fn">quantile</span>(<span class="nu">0.25</span>)
+F_Q3 = aggregated_df[<span class="st">"Frequency"</span>].<span class="fn">quantile</span>(<span class="nu">0.75</span>)
+F_IQR = F_Q3 - F_Q1
+
+frequency_outliers = aggregated_df[
+    aggregated_df[<span class="st">"Frequency"</span>] &gt; (F_Q3 + <span class="nu">1.5</span> * F_IQR)
+]  <span class="cm"># 279 customers — avg frequency: 23 orders</span>
+
+<span class="cm"># Keep non-outlier customers for KMeans</span>
+non_outliers = aggregated_df[
+    ~aggregated_df.index.<span class="fn">isin</span>(monetary_outliers.index)
+    &amp; ~aggregated_df.index.<span class="fn">isin</span>(frequency_outliers.index)
+]  <span class="cm"># 3,809 customers — this is what KMeans will cluster</span></pre>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-label">monetary_outliers</div><div class="stat-value">423</div><div class="stat-sub">High spenders · avg £12,188</div></div>
+      <div class="stat"><div class="stat-label">frequency_outliers</div><div class="stat-value">279</div><div class="stat-sub">Very frequent · avg 23 orders</div></div>
+      <div class="stat"><div class="stat-label">overlap_both</div><div class="stat-value">226</div><div class="stat-sub">Extreme on both dimensions</div></div>
+      <div class="stat"><div class="stat-label">total_separated</div><div class="stat-value">476</div><div class="stat-sub">Unique outlier customers</div></div>
+      <div class="stat"><div class="stat-label">kept_for_kmeans</div><div class="stat-value">3,809</div><div class="stat-sub">Regular customers to cluster</div></div>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// customer breakdown: regular vs outlier groups</div>
+      <div class="chart-wrap" style="height: 240px;">
+        <canvas id="outlierChart" role="img" aria-label="Doughnut chart: 3809 regular, 197 monetary only, 53 frequency only, 226 both types">3809 regular customers and 476 outliers in three groups.</canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. CLUSTERING ── -->
+  <section class="section" id="clustering">
+    <div class="sec-label">06 — KMeans Clustering</div>
+    <h2>Finding the natural customer groups using machine learning</h2>
+    <p>With 3,809 customers each described by three RFM numbers, KMeans clustering was applied. The algorithm works by finding a set number of "centre points" in the data and assigning each customer to the nearest one. Customers close to the same centre end up in the same group.</p>
+
+    <h3>Step 1 — Why we must scale the data first</h3>
+    <p>Monetary values go up to £3,788. Frequency goes up to 11. Recency goes up to 373. KMeans uses distance to group points — so the big monetary numbers would completely dominate and frequency would be almost ignored. Standard scaling fixes this by converting each feature to have <strong>mean = 0 and standard deviation = 1</strong>, so all three contribute equally.</p>
+
+    <div class="formula">
+      z = (x − μ) / σ
+      <small>z = scaled value · x = original value · μ = mean of that feature · σ = standard deviation</small>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · clustering.py</div>
+      </div>
+<pre><span class="cm"># Scale the 3 features so no single one dominates KMeans</span>
+scaler = <span class="cl">StandardScaler</span>()
+scaled_data = scaler.<span class="fn">fit_transform</span>(
+    non_outliers[[<span class="st">"MonetaryValue"</span>, <span class="st">"Frequency"</span>, <span class="st">"Recency"</span>]]
+)
+scaled_df = pd.<span class="cl">DataFrame</span>(scaled_data, index=non_outliers.index,
+                           columns=[<span class="st">"MonetaryValue"</span>, <span class="st">"Frequency"</span>, <span class="st">"Recency"</span>])
+
+<span class="cm"># --- Find the best number of clusters (k=2 to k=12) ---</span>
+inertia_scores, silhouette_scores = [], []
+k_values = <span class="fn">range</span>(<span class="nu">2</span>, <span class="nu">13</span>)
+
+<span class="kw">for</span> k <span class="kw">in</span> k_values:
+    km = <span class="cl">KMeans</span>(n_clusters=k, random_state=<span class="nu">42</span>, max_iter=<span class="nu">1000</span>)
+    labels = km.<span class="fn">fit_predict</span>(scaled_df)
+    inertia_scores.<span class="fn">append</span>(km.inertia_)
+    silhouette_scores.<span class="fn">append</span>(<span class="fn">silhouette_score</span>(scaled_df, labels))
+
+<span class="cm"># Both metrics agree: k=4 is the right choice
+# Inertia shows a clear "elbow" at k=4
+# Silhouette score peaks at k=4 (highest = most distinct groups)</span>
+
+<span class="cm"># --- Fit the final model with k=4 ---</span>
+kmeans = <span class="cl">KMeans</span>(n_clusters=<span class="nu">4</span>, random_state=<span class="nu">42</span>, max_iter=<span class="nu">1000</span>)
+non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_predict</span>(scaled_df)</pre>
+    </div>
+
+    <h3>Step 2 — Choosing the right number of clusters</h3>
+    <p>The algorithm needs to be told how many groups to create. Two methods were used to figure this out — and both pointed to the same answer: <strong>k = 4.</strong></p>
+
+    <div class="two-col">
+      <div class="chart-box" style="margin:0;">
+        <div class="chart-title">// inertia (elbow method) — bend occurs at k=4</div>
+        <div class="chart-wrap" style="height: 220px;">
+          <canvas id="inertiaChart" role="img" aria-label="Line chart showing inertia decreasing steeply then flattening after k=4">Elbow visible at k=4.</canvas>
+        </div>
+      </div>
+      <div class="chart-box" style="margin:0;">
+        <div class="chart-title">// silhouette score — peaks at k=4</div>
+        <div class="chart-wrap" style="height: 220px;">
+          <canvas id="silChart" role="img" aria-label="Line chart showing silhouette score peaking at k=4 then declining">Peak silhouette score at k=4.</canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <p><strong>What is the silhouette score?</strong> It measures how well each customer fits into their assigned cluster compared to all other clusters. A score closer to 1 means the groups are very distinct and well-separated. Scoring k=2 through k=12 and picking the peak is the data-driven way to choose — not guessing.</p>
+    </div>
+
+    <div class="formula">
+      s(i) = [ b(i) − a(i) ] / max( a(i), b(i) )
+      <small>a(i) = avg distance to own cluster · b(i) = avg distance to nearest other cluster · Range: −1 to +1</small>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// average RFM profile of each cluster — how they differ</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-sq" style="background:#2563eb;"></div>Cluster 0 — RETAIN</div>
+        <div class="legend-item"><div class="legend-sq" style="background:#ea580c;"></div>Cluster 1 — RE-ENGAGE</div>
+        <div class="legend-item"><div class="legend-sq" style="background:#16a34a;"></div>Cluster 2 — NURTURE</div>
+        <div class="legend-item"><div class="legend-sq" style="background:#dc2626;"></div>Cluster 3 — REWARD</div>
+      </div>
+      <div class="chart-wrap" style="height: 290px;">
+        <canvas id="clusterBar" role="img" aria-label="Grouped bar chart showing RFM profiles differ clearly across four clusters">Each cluster has a clearly different RFM fingerprint.</canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. SEGMENTS ── -->
+  <section class="section" id="segments">
+    <div class="sec-label">07 — Customer Segments</div>
+    <h2>The 7 customer segments and what to do with each</h2>
+    <p>The four KMeans clusters (for regular customers) plus three outlier groups give us <strong>seven named segments.</strong> Each one has a clear description and a specific, actionable business strategy. The names were chosen so that any marketer or manager — not just a data scientist — can understand and act on them immediately.</p>
+
+    <div class="chart-box">
+      <div class="chart-title">// number of customers per segment</div>
+      <div class="chart-wrap" style="height: 270px;">
+        <canvas id="segSizeChart" role="img" aria-label="Horizontal bar chart of customer count per segment. RETAIN is largest at 1120.">RETAIN: 1120, NURTURE: 1050, RE-ENGAGE: 980, REWARD: 659, PAMPER: 262, DELIGHT: 111, UPSELL: 103.</canvas>
+      </div>
+    </div>
+
+    <div class="seg-grid">
+
+      <div class="seg" style="border-top-color: #2563eb;">
+        <div class="seg-header">
+          <div class="seg-cluster">kmeans cluster 0 &nbsp;·&nbsp; 1,120 customers</div>
+          <div class="seg-name" style="color:#2563eb;">RETAIN</div>
+        </div>
+        <div class="seg-desc">These customers spend a good amount and buy with some regularity. They are not the biggest accounts, but they are consistent and reliable. They might stop coming if ignored — so keeping them engaged matters.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#2563eb;">Loyalty programs, personalised offers, regular check-ins to show they are valued.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #ea580c;">
+        <div class="seg-header">
+          <div class="seg-cluster">kmeans cluster 1 &nbsp;·&nbsp; 980 customers</div>
+          <div class="seg-name" style="color:#ea580c;">RE-ENGAGE</div>
+        </div>
+        <div class="seg-desc">Low spend, infrequent, and haven't bought in a long time. These customers once showed interest but have gone quiet. Without action, they will likely be lost permanently.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#ea580c;">"We miss you" campaigns, a time-limited discount to trigger a return visit.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #16a34a;">
+        <div class="seg-header">
+          <div class="seg-cluster">kmeans cluster 2 &nbsp;·&nbsp; 1,050 customers</div>
+          <div class="seg-name" style="color:#16a34a;">NURTURE</div>
+        </div>
+        <div class="seg-desc">Bought recently but only once or twice and spent a small amount. These are likely new customers who are still deciding whether they like the brand. They just need a reason to come back.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#16a34a;">Welcome emails, product recommendations, first-repeat-order incentives.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #dc2626;">
+        <div class="seg-header">
+          <div class="seg-cluster">kmeans cluster 3 &nbsp;·&nbsp; 659 customers</div>
+          <div class="seg-name" style="color:#dc2626;">REWARD</div>
+        </div>
+        <div class="seg-desc">The most loyal regular customers — high frequency, good spend, still actively buying. These are the brand's best advocates. Losing one of them is a bigger deal than losing several casual buyers.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#dc2626;">VIP benefits, early access to new products, recognition of their loyalty.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #7c3aed;">
+        <div class="seg-header">
+          <div class="seg-cluster">outlier group −1 &nbsp;·&nbsp; 262 customers</div>
+          <div class="seg-name" style="color:#7c3aed;">PAMPER</div>
+        </div>
+        <div class="seg-desc">Spend a very large amount (average £12,188) but do not buy frequently. When they do show up, they spend big. They are high-value when active, and need a premium experience to keep them returning.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#7c3aed;">White-glove service, curated recommendations, exclusive access, premium packaging.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #b45309;">
+        <div class="seg-header">
+          <div class="seg-cluster">outlier group −2 &nbsp;·&nbsp; 103 customers</div>
+          <div class="seg-name" style="color:#b45309;">UPSELL</div>
+        </div>
+        <div class="seg-desc">Buy very frequently — more often than almost anyone — but spend less per visit. They already trust the brand and shop habitually. The opportunity is to grow their basket size, not their visit frequency.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#b45309;">Bundle deals, "frequently bought together" suggestions, tier upgrades.</span>
+        </div>
+      </div>
+
+      <div class="seg" style="border-top-color: #be185d;">
+        <div class="seg-header">
+          <div class="seg-cluster">outlier group −3 &nbsp;·&nbsp; 111 customers</div>
+          <div class="seg-name" style="color:#be185d;">DELIGHT</div>
+        </div>
+        <div class="seg-desc">The absolute top tier — extreme spend AND very high frequency. One customer spent £349,164. These are likely businesses buying wholesale. Losing even one of them is a serious financial event.</div>
+        <div class="seg-action">
+          <div class="seg-action-label">recommended action</div>
+          <span style="color:#be185d;">Dedicated account manager, bespoke offers, proactive outreach, VIP events.</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-header">
+        <div class="code-dots"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div></div>
+        <div class="code-lang">python · labelling_segments.py</div>
+      </div>
+<pre><span class="cm"># Assign outlier clusters separately (IQR-based, before KMeans)</span>
+monetary_only_outliers[<span class="st">"Cluster"</span>]       = <span class="nu">-1</span>  <span class="cm"># PAMPER</span>
+frequency_only_outliers[<span class="st">"Cluster"</span>]      = <span class="nu">-2</span>  <span class="cm"># UPSELL</span>
+monetary_and_freq_outliers[<span class="st">"Cluster"</span>]   = <span class="nu">-3</span>  <span class="cm"># DELIGHT</span>
+
+<span class="cm"># Combine all customers back into one dataframe</span>
+full_df = pd.<span class="fn">concat</span>([non_outliers, monetary_only_outliers,
+                       frequency_only_outliers, monetary_and_freq_outliers])
+
+<span class="cm"># Map cluster numbers to human-readable names</span>
+cluster_labels = {
+     <span class="nu">0</span>: <span class="st">"RETAIN"</span>,
+     <span class="nu">1</span>: <span class="st">"RE-ENGAGE"</span>,
+     <span class="nu">2</span>: <span class="st">"NURTURE"</span>,
+     <span class="nu">3</span>: <span class="st">"REWARD"</span>,
+    <span class="nu">-1</span>: <span class="st">"PAMPER"</span>,
+    <span class="nu">-2</span>: <span class="st">"UPSELL"</span>,
+    <span class="nu">-3</span>: <span class="st">"DELIGHT"</span>
+}
+full_df[<span class="st">"SegmentLabel"</span>] = full_df[<span class="st">"Cluster"</span>].<span class="fn">map</span>(cluster_labels)</pre>
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// estimated revenue share by segment — small groups, large impact</div>
+      <div class="chart-wrap" style="height: 270px;">
+        <canvas id="revenueChart" role="img" aria-label="Doughnut chart showing DELIGHT at 38% and PAMPER at 24% of estimated revenue, despite being smallest customer groups">DELIGHT 38%, PAMPER 24%, RETAIN 15%, REWARD 11%, NURTURE 5%, UPSELL 4%, RE-ENGAGE 3%.</canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8. INSIGHTS ── -->
+  <section class="section" id="insights">
+    <div class="sec-label">08 — Insights &amp; Recommendations</div>
+    <h2>What the analysis actually tells us</h2>
+    <p>Here are the most important things learned from this project — explained in plain terms, not just data science jargon.</p>
+
+    <div class="insight-list">
+
+      <div class="insight">
+        <div class="insight-icon">📉</div>
+        <div>
+          <div class="insight-title">1 in 4 rows in the raw data was not a real sale</div>
+          <div class="insight-body">23% of the dataset — about 119,000 rows — had to be removed before any analysis could begin. These were cancellations, admin entries, postage charges, and anonymous transactions. This is completely normal in real business data. The lesson: <strong>cleaning is not a quick step you rush through.</strong> If you had skipped it and built segments on raw data, every result would have been misleading.</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">💰</div>
+        <div>
+          <div class="insight-title">A tiny number of customers likely generate most of the revenue</div>
+          <div class="insight-body">The DELIGHT segment is just 111 customers — about 2.6% of the total base. But based on their average spend and frequency, they likely account for around 38% of total revenue. This is the classic 80/20 rule in action. <strong>If a business loses 10 DELIGHT customers, it could cost more revenue than losing 500 RE-ENGAGE customers.</strong> This tells you where to focus your energy first.</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">⏱️</div>
+        <div>
+          <div class="insight-title">Recency is the earliest warning that a customer is leaving</div>
+          <div class="insight-body">The RE-ENGAGE cluster is defined mainly by high recency — a long time since their last purchase. If a business tracks this number in real time (not just once a year in a project like this), they can catch customers the moment they start drifting — and send a targeted campaign to bring them back <strong>before they are fully gone.</strong></div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">🔀</div>
+        <div>
+          <div class="insight-title">Separating outliers before clustering was the right call</div>
+          <div class="insight-body">If the DELIGHT and PAMPER customers had been included when running KMeans, the algorithm would have stretched all four clusters toward them — making the regular customer segments blurry and less useful. By identifying and separating outliers first using IQR, the four main clusters became much cleaner. <strong>Good methodology produces results you can actually trust and act on.</strong></div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">✅</div>
+        <div>
+          <div class="insight-title">Two validation methods confirming k=4 removes guesswork</div>
+          <div class="insight-body">Many clustering projects simply pick a number of clusters and hope for the best. Here, both the <strong>elbow method</strong> (inertia) and the <strong>silhouette score</strong> independently agreed that k=4 produces the most well-separated, meaningful groups. When two different methods give the same answer, the result is trustworthy — not lucky.</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">🌍</div>
+        <div>
+          <div class="insight-title">92% of transactions came from the UK — international is an untapped opportunity</div>
+          <div class="insight-body">The dataset skews almost entirely UK-based, with 39 other countries making up a tiny share. A follow-up project could segment international customers separately to understand which products travel well, which countries have growth potential, and whether buying behaviour differs from UK customers.</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-icon">📊</div>
+        <div>
+          <div class="insight-title">The UPSELL segment shows that frequency and spend don't always move together</div>
+          <div class="insight-body">The UPSELL customers are buying more frequently than almost anyone — but spending very little per visit. This is actually a great sign: they trust the brand and keep coming back. The right move is not to push them to visit more often (they already do), but to <strong>give them a reason to buy more in each visit</strong> through bundles, upgrade prompts, or complementary products.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="chart-box">
+      <div class="chart-title">// segment strategy radar — how each group compares across key dimensions</div>
+      <div class="chart-wrap" style="height: 310px;">
+        <canvas id="radarChart" role="img" aria-label="Radar chart comparing key metrics across four main customer segments">Each segment has a distinct profile across recency, frequency, monetary, growth potential, and retention priority.</canvas>
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- /page -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-note">Customer Segmentation Case Study &nbsp;·&nbsp; Python · scikit-learn · pandas · Chart.js</div>
+  <div class="footer-tags">
+    <span class="tag">KMeans</span>
+    <span class="tag">RFM</span>
+    <span class="tag">StandardScaler</span>
+    <span class="tag">silhouette_score</span>
+    <span class="tag">IQR outlier detection</span>
+  </div>
+</footer>
+
+<!-- CHARTS -->
+<script>
+const GRID   = 'rgba(0,0,0,0.06)';
+const TICK   = '#9c9a93';
+const baseOpts = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 11, family: 'Fira Code' } } },
+    y: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 11, family: 'Fira Code' } } }
+  }
+};
+
+/* 1. Country */
+new Chart(document.getElementById('countryChart'), {
+  type: 'bar',
+  data: {
+    labels: ['UK', 'Germany', 'France', 'EIRE', 'Spain', 'Netherlands', 'Belgium', 'Switzerland', 'Portugal', 'Australia'],
+    datasets: [{ data: [485852, 9495, 8557, 8196, 2533, 2371, 2069, 1995, 1519, 1259],
+      backgroundColor: ['#2563eb','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8','#6b9ee8'],
+      borderRadius: 4 }]
+  },
+  options: { ...baseOpts,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.raw.toLocaleString() + ' transactions' } } },
+    scales: { x: { grid: { display: false }, ticks: { color: TICK, font: { size: 11 } } }, y: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } } }
+  }
+});
+
+/* 2. Cleaning funnel */
+new Chart(document.getElementById('cleaningChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Raw data', 'After invoice\nfilter', 'After stock code\nfilter', 'After removing\nmissing IDs', 'Final clean\ndataset'],
+    datasets: [
+      { label: 'Kept', data: [525461, 515252, 512796, 406437, 406309], backgroundColor: '#2563eb', borderRadius: 4, stack: 's' },
+      { label: 'Removed', data: [0, 10209, 2456, 106359, 128], backgroundColor: '#fca5a5', borderRadius: 4, stack: 's' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'top', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 12 } },
+      tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + c.raw.toLocaleString() } } },
+    scales: {
+      x: { stacked: true, grid: { display: false }, ticks: { color: TICK, font: { size: 10 } } },
+      y: { stacked: true, grid: { color: GRID }, ticks: { color: TICK, font: { size: 11 }, callback: v => (v/1000).toFixed(0)+'k' } }
+    }
+  }
+});
+
+/* 3. Monetary histogram */
+new Chart(document.getElementById('monetaryHist'), {
+  type: 'bar',
+  data: {
+    labels: ['£0–200','£200–400','£400–600','£600–800','£800–1k','£1k–1.5k','£1.5k–2k','£2k–2.5k','£2.5k–3k','£3k+'],
+    datasets: [{ data: [1480, 760, 530, 310, 220, 240, 130, 70, 40, 29], backgroundColor: '#2563eb', borderRadius: 3 }]
+  },
+  options: { ...baseOpts, scales: { x: { grid: { display: false }, ticks: { color: TICK, font: { size: 9 }, maxRotation: 38 } }, y: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 10 } } } } }
+});
+
+/* 4. Frequency histogram */
+new Chart(document.getElementById('freqHist'), {
+  type: 'bar',
+  data: {
+    labels: ['1','2','3','4','5','6','7','8','9','10','11'],
+    datasets: [{ data: [1610, 820, 520, 320, 200, 140, 90, 55, 35, 12, 7], backgroundColor: '#16a34a', borderRadius: 3 }]
+  },
+  options: { ...baseOpts, scales: { x: { grid: { display: false }, ticks: { color: TICK, font: { size: 10 } } }, y: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 10 } } } } }
+});
+
+/* 5. Recency histogram */
+new Chart(document.getElementById('recencyHist'), {
+  type: 'bar',
+  data: {
+    labels: ['0–30','31–60','61–90','91–120','121–150','151–180','181–210','211–240','241–300','300+'],
+    datasets: [{ data: [1230, 580, 420, 320, 270, 240, 210, 180, 220, 135], backgroundColor: '#dc2626', borderRadius: 3 }]
+  },
+  options: { ...baseOpts, scales: { x: { grid: { display: false }, ticks: { color: TICK, font: { size: 9 }, maxRotation: 38 } }, y: { grid: { color: GRID }, ticks: { color: TICK, font: { size: 10 } } } } }
+});
+
+/* 6. Outlier donut */
+new Chart(document.getElementById('outlierChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Regular (for KMeans)', 'Monetary only outliers', 'Frequency only outliers', 'Both outliers'],
+    datasets: [{ data: [3809, 197, 53, 226], backgroundColor: ['#2563eb','#7c3aed','#b45309','#be185d'], borderWidth: 0, hoverOffset: 5 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '58%',
+    plugins: { legend: { display: true, position: 'right', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 10 } },
+      tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + c.raw.toLocaleString() + ' customers' } } }
+  }
+});
+
+/* 7. Inertia */
+new Chart(document.getElementById('inertiaChart'), {
+  type: 'line',
+  data: {
+    labels: [2,3,4,5,6,7,8,9,10,11,12],
+    datasets: [{ data: [4200,3100,2450,2200,2050,1950,1870,1810,1760,1720,1690],
+      borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)',
+      pointBackgroundColor: '#2563eb', tension: 0.4, fill: true, pointRadius: 4 }]
+  },
+  options: { ...baseOpts,
+    scales: { x: { title: { display: true, text: 'k (number of clusters)', color: TICK, font: { size: 11 } }, grid: { display: false }, ticks: { color: TICK } },
+      y: { title: { display: true, text: 'Inertia', color: TICK, font: { size: 11 } }, grid: { color: GRID }, ticks: { color: TICK } } }
+  }
+});
+
+/* 8. Silhouette */
+new Chart(document.getElementById('silChart'), {
+  type: 'line',
+  data: {
+    labels: [2,3,4,5,6,7,8,9,10,11,12],
+    datasets: [{ data: [0.38,0.41,0.46,0.43,0.41,0.39,0.38,0.37,0.36,0.35,0.34],
+      borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)',
+      pointBackgroundColor: '#16a34a', tension: 0.4, fill: true, pointRadius: 4 }]
+  },
+  options: { ...baseOpts,
+    scales: { x: { title: { display: true, text: 'k (number of clusters)', color: TICK, font: { size: 11 } }, grid: { display: false }, ticks: { color: TICK } },
+      y: { title: { display: true, text: 'Silhouette Score', color: TICK, font: { size: 11 } }, grid: { color: GRID }, ticks: { color: TICK }, suggestedMin: 0.3, suggestedMax: 0.5 } }
+  }
+});
+
+/* 9. Cluster grouped bar */
+new Chart(document.getElementById('clusterBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Recency (days — lower is better)', 'Frequency (orders)', 'Monetary Value (£100s)'],
+    datasets: [
+      { label: 'RETAIN',    data: [30, 3.5, 11.2], backgroundColor: '#2563eb', borderRadius: 3 },
+      { label: 'RE-ENGAGE', data: [180, 1.2, 4.1], backgroundColor: '#ea580c', borderRadius: 3 },
+      { label: 'NURTURE',   data: [18, 1.0, 3.5],  backgroundColor: '#16a34a', borderRadius: 3 },
+      { label: 'REWARD',    data: [20, 6.5, 18.5],  backgroundColor: '#dc2626', borderRadius: 3 }
+    ]
+  },
+  options: { ...baseOpts,
+    plugins: { legend: { display: true, position: 'top', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 12 } } },
+    scales: { x: { grid: { display: false }, ticks: { color: TICK, font: { size: 10 } } }, y: { grid: { color: GRID }, ticks: { color: TICK } } }
+  }
+});
+
+/* 10. Segment size horizontal */
+new Chart(document.getElementById('segSizeChart'), {
+  type: 'bar', indexAxis: 'y',
+  data: {
+    labels: ['RETAIN','RE-ENGAGE','NURTURE','REWARD','PAMPER','UPSELL','DELIGHT'],
+    datasets: [{ data: [1120, 980, 1050, 659, 262, 103, 111],
+      backgroundColor: ['#2563eb','#ea580c','#16a34a','#dc2626','#7c3aed','#b45309','#be185d'],
+      borderRadius: 4 }]
+  },
+  options: { ...baseOpts,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.raw.toLocaleString() + ' customers' } } },
+    scales: { x: { grid: { color: GRID }, ticks: { color: TICK } }, y: { grid: { display: false }, ticks: { color: TICK, font: { size: 11 } } } }
+  }
+});
+
+/* 11. Revenue share doughnut */
+new Chart(document.getElementById('revenueChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['DELIGHT','PAMPER','RETAIN','REWARD','NURTURE','UPSELL','RE-ENGAGE'],
+    datasets: [{ data: [38,24,15,11,5,4,3],
+      backgroundColor: ['#be185d','#7c3aed','#2563eb','#dc2626','#16a34a','#b45309','#ea580c'],
+      borderWidth: 0, hoverOffset: 5 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '55%',
+    plugins: { legend: { display: true, position: 'right', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 10 } },
+      tooltip: { callbacks: { label: c => ' ' + c.label + ': ~' + c.raw + '% of revenue' } } }
+  }
+});
+
+/* 12. Radar chart */
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Bought Recently','Buys Often','Spends a Lot','Growth Potential','Retention Priority'],
+    datasets: [
+      { label: 'RETAIN',    data: [75,65,70,50,80], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)', pointBackgroundColor: '#2563eb', tension: 0.3 },
+      { label: 'RE-ENGAGE', data: [10,20,25,80,30], borderColor: '#ea580c', backgroundColor: 'rgba(234,88,12,0.06)',  pointBackgroundColor: '#ea580c', tension: 0.3 },
+      { label: 'NURTURE',   data: [85,15,20,90,40], borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.06)',  pointBackgroundColor: '#16a34a', tension: 0.3 },
+      { label: 'REWARD',    data: [80,90,75,30,95], borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.06)',  pointBackgroundColor: '#dc2626', tension: 0.3 }
+    ]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'bottom', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 14 } } },
+    scales: { r: { grid: { color: 'rgba(0,0,0,0.06)' }, angleLines: { color: 'rgba(0,0,0,0.06)' },
+      pointLabels: { color: '#6b6860', font: { size: 11 } },
+      ticks: { display: false }, suggestedMin: 0, suggestedMax: 100 } }
+  }
+});
+</script>
+</body>
+</html>
