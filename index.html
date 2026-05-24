@@ -710,9 +710,8 @@ k_values = <span class="fn">range</span>(<span class="nu">2</span>, <span class=
     inertia_scores.<span class="fn">append</span>(km.inertia_)
     silhouette_scores.<span class="fn">append</span>(<span class="fn">silhouette_score</span>(scaled_df, labels))
 
-<span class="cm"># Both metrics agree: k=4 is the right choice
-# Inertia shows a clear "elbow" at k=4
-# Silhouette score peaks at k=4 (highest = most distinct groups)</span>
+<span class="cm"># Silhouette actually peaks at k=3; elbow bends at k=3-4.
+# I choose k=4 on purpose: more actionable segments, slight metric cost.</span>
 
 <span class="cm"># --- Fit the final model with k=4 ---</span>
 kmeans = <span class="cl">KMeans</span>(n_clusters=<span class="nu">4</span>, random_state=<span class="nu">42</span>, max_iter=<span class="nu">1000</span>)
@@ -720,19 +719,19 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
     </div>
 
     <h3>Step 2 — Choosing the right number of clusters</h3>
-    <p>The algorithm needs to be told how many groups to create. Two methods were used to figure this out — and both pointed to the same answer: <strong>k = 4.</strong></p>
+    <p>The algorithm needs to be told how many groups to create. Two methods were used to figure this out — and they pointed in slightly different directions: <strong>silhouette favoured k = 3, the elbow bent around k = 3–4, and I chose k = 4.</strong></p>
 
     <div class="two-col">
       <div class="chart-box" style="margin:0;">
         <div class="chart-title">// inertia (elbow method) — bend occurs at k=4</div>
         <div class="chart-wrap" style="height: 220px;">
-          <canvas id="inertiaChart" role="img" aria-label="Line chart showing inertia decreasing steeply then flattening after k=4">Elbow visible at k=4.</canvas>
+          <canvas id="inertiaChart" role="img" aria-label="Line chart showing inertia decreasing steeply then flattening after k=3-4">Elbow bends around k=3-4.</canvas>
         </div>
       </div>
       <div class="chart-box" style="margin:0;">
-        <div class="chart-title">// silhouette score — peaks at k=4</div>
+        <div class="chart-title">// silhouette score — peaks at k=3</div>
         <div class="chart-wrap" style="height: 220px;">
-          <canvas id="silChart" role="img" aria-label="Line chart showing silhouette score peaking at k=4 then declining">Peak silhouette score at k=4.</canvas>
+          <canvas id="silChart" role="img" aria-label="Line chart showing silhouette score peaking at k=3 then declining">Peak silhouette score at k=3 (k=4 chosen).</canvas>
         </div>
       </div>
     </div>
@@ -769,7 +768,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
     <div class="chart-box">
       <div class="chart-title">// number of customers per segment</div>
       <div class="chart-wrap" style="height: 270px;">
-        <canvas id="segSizeChart" role="img" aria-label="Horizontal bar chart of customer count per segment. RETAIN is largest at 1120.">RETAIN: 1120, NURTURE: 1050, RE-ENGAGE: 980, REWARD: 659, PAMPER: 262, DELIGHT: 111, UPSELL: 103.</canvas>
+        <canvas id="segSizeChart" role="img" aria-label="Horizontal bar chart of customer count per segment. NURTURE is largest at 1499.">NURTURE: 1499, RETAIN: 914, RE-ENGAGE: 902, REWARD: 494, DELIGHT: 226, PAMPER: 197, UPSELL: 53.</canvas>
       </div>
     </div>
 
@@ -777,7 +776,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #2563eb;">
         <div class="seg-header">
-          <div class="seg-cluster">kmeans cluster 0 &nbsp;·&nbsp; 1,120 customers</div>
+          <div class="seg-cluster">kmeans cluster 0 &nbsp;·&nbsp; 914 customers</div>
           <div class="seg-name" style="color:#2563eb;">RETAIN</div>
         </div>
         <div class="seg-desc">These customers spend a good amount and buy with some regularity. They are not the biggest accounts, but they are consistent and reliable. They might stop coming if ignored — so keeping them engaged matters.</div>
@@ -789,7 +788,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #ea580c;">
         <div class="seg-header">
-          <div class="seg-cluster">kmeans cluster 1 &nbsp;·&nbsp; 980 customers</div>
+          <div class="seg-cluster">kmeans cluster 1 &nbsp;·&nbsp; 902 customers</div>
           <div class="seg-name" style="color:#ea580c;">RE-ENGAGE</div>
         </div>
         <div class="seg-desc">Low spend, infrequent, and haven't bought in a long time. These customers once showed interest but have gone quiet. Without action, they will likely be lost permanently.</div>
@@ -801,7 +800,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #16a34a;">
         <div class="seg-header">
-          <div class="seg-cluster">kmeans cluster 2 &nbsp;·&nbsp; 1,050 customers</div>
+          <div class="seg-cluster">kmeans cluster 2 &nbsp;·&nbsp; 1,499 customers</div>
           <div class="seg-name" style="color:#16a34a;">NURTURE</div>
         </div>
         <div class="seg-desc">Bought recently but only once or twice and spent a small amount. These are likely new customers who are still deciding whether they like the brand. They just need a reason to come back.</div>
@@ -813,7 +812,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #dc2626;">
         <div class="seg-header">
-          <div class="seg-cluster">kmeans cluster 3 &nbsp;·&nbsp; 659 customers</div>
+          <div class="seg-cluster">kmeans cluster 3 &nbsp;·&nbsp; 494 customers</div>
           <div class="seg-name" style="color:#dc2626;">REWARD</div>
         </div>
         <div class="seg-desc">The most loyal regular customers — high frequency, good spend, still actively buying. These are the brand's best advocates. Losing one of them is a bigger deal than losing several casual buyers.</div>
@@ -825,7 +824,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #7c3aed;">
         <div class="seg-header">
-          <div class="seg-cluster">outlier group −1 &nbsp;·&nbsp; 262 customers</div>
+          <div class="seg-cluster">outlier group −1 &nbsp;·&nbsp; 197 customers</div>
           <div class="seg-name" style="color:#7c3aed;">PAMPER</div>
         </div>
         <div class="seg-desc">Spend a very large amount (average £12,188) but do not buy frequently. When they do show up, they spend big. They are high-value when active, and need a premium experience to keep them returning.</div>
@@ -837,7 +836,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #b45309;">
         <div class="seg-header">
-          <div class="seg-cluster">outlier group −2 &nbsp;·&nbsp; 103 customers</div>
+          <div class="seg-cluster">outlier group −2 &nbsp;·&nbsp; 53 customers</div>
           <div class="seg-name" style="color:#b45309;">UPSELL</div>
         </div>
         <div class="seg-desc">Buy very frequently — more often than almost anyone — but spend less per visit. They already trust the brand and shop habitually. The opportunity is to grow their basket size, not their visit frequency.</div>
@@ -849,7 +848,7 @@ non_outliers[<span class="st">"Cluster"</span>] = kmeans.<span class="fn">fit_pr
 
       <div class="seg" style="border-top-color: #be185d;">
         <div class="seg-header">
-          <div class="seg-cluster">outlier group −3 &nbsp;·&nbsp; 111 customers</div>
+          <div class="seg-cluster">outlier group −3 &nbsp;·&nbsp; 226 customers</div>
           <div class="seg-name" style="color:#be185d;">DELIGHT</div>
         </div>
         <div class="seg-desc">The absolute top tier — extreme spend AND very high frequency. One customer spent £349,164. These are likely businesses buying wholesale. Losing even one of them is a serious financial event.</div>
@@ -889,9 +888,9 @@ full_df[<span class="st">"SegmentLabel"</span>] = full_df[<span class="st">"Clus
     </div>
 
     <div class="chart-box">
-      <div class="chart-title">// estimated revenue share by segment — small groups, large impact</div>
+      <div class="chart-title">// revenue share by segment (computed) — small groups, large impact</div>
       <div class="chart-wrap" style="height: 270px;">
-        <canvas id="revenueChart" role="img" aria-label="Doughnut chart showing DELIGHT at 38% and PAMPER at 24% of estimated revenue, despite being smallest customer groups">DELIGHT 38%, PAMPER 24%, RETAIN 15%, REWARD 11%, NURTURE 5%, UPSELL 4%, RE-ENGAGE 3%.</canvas>
+        <canvas id="revenueChart" role="img" aria-label="Doughnut chart showing DELIGHT at 45% of revenue despite being a small customer group">DELIGHT 45%, PAMPER 15%, REWARD 14%, RETAIN 14%, NURTURE 7%, RE-ENGAGE 4%, UPSELL 2%.</canvas>
       </div>
     </div>
   </section>
@@ -916,7 +915,7 @@ full_df[<span class="st">"SegmentLabel"</span>] = full_df[<span class="st">"Clus
         <div class="insight-icon">💰</div>
         <div>
           <div class="insight-title">A tiny number of customers likely generate most of the revenue</div>
-          <div class="insight-body">The DELIGHT segment is just 111 customers — about 2.6% of the total base. But based on their average spend and frequency, they likely account for around 38% of total revenue. This is the classic 80/20 rule in action. <strong>If a business loses 10 DELIGHT customers, it could cost more revenue than losing 500 RE-ENGAGE customers.</strong> This tells you where to focus your energy first.</div>
+          <div class="insight-body">The DELIGHT segment is just 226 customers — about 5.3% of the total base. Yet, computed directly from the cleaned data, they account for roughly 45% of all revenue. The three elite segments together (DELIGHT, PAMPER, UPSELL) are about 11% of customers but ~61% of revenue. This is the classic 80/20 rule in action. <strong>If a business loses 10 DELIGHT customers, it could cost more revenue than losing 500 RE-ENGAGE customers.</strong> This tells you where to focus your energy first.</div>
         </div>
       </div>
 
@@ -939,15 +938,15 @@ full_df[<span class="st">"SegmentLabel"</span>] = full_df[<span class="st">"Clus
       <div class="insight">
         <div class="insight-icon">✅</div>
         <div>
-          <div class="insight-title">Two validation methods confirming k=4 removes guesswork</div>
-          <div class="insight-body">Many clustering projects simply pick a number of clusters and hope for the best. Here, both the <strong>elbow method</strong> (inertia) and the <strong>silhouette score</strong> independently agreed that k=4 produces the most well-separated, meaningful groups. When two different methods give the same answer, the result is trustworthy — not lucky.</div>
+          <div class="insight-title">Choosing k = 4 — a deliberate trade-off</div>
+          <div class="insight-body">Many clustering projects simply pick a number of clusters and hope for the best. Here the two checks disagreed slightly: the <strong>silhouette score</strong> actually peaked at <strong>k = 3</strong> (≈0.46) and dropped to ≈0.42 at k = 4, while the <strong>elbow</strong> on inertia bent around k = 3–4. I chose <strong>k = 4</strong> on purpose — trading a little statistical separation for segments that are more <em>actionable</em>. At k = 3 the loyal regulars and the new, low-frequency buyers collapse into one group you can't write distinct campaigns for. Saying this out loud matters more than pretending the metrics agreed.</div>
         </div>
       </div>
 
       <div class="insight">
         <div class="insight-icon">🌍</div>
         <div>
-          <div class="insight-title">92% of transactions came from the UK — international is an untapped opportunity</div>
+          <div class="insight-title">91% of transactions came from the UK — international is an untapped opportunity</div>
           <div class="insight-body">The dataset skews almost entirely UK-based, with 39 other countries making up a tiny share. A follow-up project could segment international customers separately to understand which products travel well, which countries have growth potential, and whether buying behaviour differs from UK customers.</div>
         </div>
       </div>
@@ -1082,7 +1081,7 @@ new Chart(document.getElementById('inertiaChart'), {
   type: 'line',
   data: {
     labels: [2,3,4,5,6,7,8,9,10,11,12],
-    datasets: [{ data: [4200,3100,2450,2200,2050,1950,1870,1810,1760,1720,1690],
+    datasets: [{ data: [6175,3607,2752,2380,2057,1801,1623,1496,1370,1279,1198],
       borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)',
       pointBackgroundColor: '#2563eb', tension: 0.4, fill: true, pointRadius: 4 }]
   },
@@ -1097,7 +1096,7 @@ new Chart(document.getElementById('silChart'), {
   type: 'line',
   data: {
     labels: [2,3,4,5,6,7,8,9,10,11,12],
-    datasets: [{ data: [0.38,0.41,0.46,0.43,0.41,0.39,0.38,0.37,0.36,0.35,0.34],
+    datasets: [{ data: [0.444,0.458,0.415,0.406,0.373,0.357,0.366,0.328,0.332,0.318,0.316],
       borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)',
       pointBackgroundColor: '#16a34a', tension: 0.4, fill: true, pointRadius: 4 }]
   },
@@ -1130,7 +1129,7 @@ new Chart(document.getElementById('segSizeChart'), {
   type: 'bar', indexAxis: 'y',
   data: {
     labels: ['RETAIN','RE-ENGAGE','NURTURE','REWARD','PAMPER','UPSELL','DELIGHT'],
-    datasets: [{ data: [1120, 980, 1050, 659, 262, 103, 111],
+    datasets: [{ data: [914, 902, 1499, 494, 197, 53, 226],
       backgroundColor: ['#2563eb','#ea580c','#16a34a','#dc2626','#7c3aed','#b45309','#be185d'],
       borderRadius: 4 }]
   },
@@ -1145,13 +1144,13 @@ new Chart(document.getElementById('revenueChart'), {
   type: 'doughnut',
   data: {
     labels: ['DELIGHT','PAMPER','RETAIN','REWARD','NURTURE','UPSELL','RE-ENGAGE'],
-    datasets: [{ data: [38,24,15,11,5,4,3],
+    datasets: [{ data: [44.7,14.8,13.8,13.9,7.2,1.7,4.0],
       backgroundColor: ['#be185d','#7c3aed','#2563eb','#dc2626','#16a34a','#b45309','#ea580c'],
       borderWidth: 0, hoverOffset: 5 }]
   },
   options: { responsive: true, maintainAspectRatio: false, cutout: '55%',
     plugins: { legend: { display: true, position: 'right', labels: { color: TICK, font: { size: 11 }, boxWidth: 10, padding: 10 } },
-      tooltip: { callbacks: { label: c => ' ' + c.label + ': ~' + c.raw + '% of revenue' } } }
+      tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + c.raw + '% of revenue' } } }
   }
 });
 
